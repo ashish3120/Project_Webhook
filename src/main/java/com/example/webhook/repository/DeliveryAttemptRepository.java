@@ -1,0 +1,16 @@
+package com.example.webhook.repository;
+
+import com.example.webhook.entity.DeliveryAttempt;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.UUID;
+
+@Repository
+public interface DeliveryAttemptRepository extends JpaRepository<DeliveryAttempt, UUID> {
+
+    List<DeliveryAttempt> findByDeliveryIdOrderByAttemptNumberAsc(UUID deliveryId);
+
+    long countByDeliveryId(UUID deliveryId);
+}

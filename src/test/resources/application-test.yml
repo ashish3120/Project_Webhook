@@ -1,0 +1,50 @@
+spring:
+  datasource:
+    url: ${spring.datasource.url}
+    username: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+webhook:
+  scheduling:
+    enabled: false
+  worker:
+    lease-duration-seconds: 10
+    batch-size: 5
+    poll-interval-ms: 1000
+    thread-pool-size: 3
+  retry:
+    max-attempts: 3
+    base-delay-ms: 100
+    max-delay-ms: 5000
+    jitter-factor: 0.1
+  client:
+    connect-timeout-ms: 2000
+    read-timeout-ms: 3000
+  allow-internal-endpoints: true
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 5
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 2
+
+logging:
+  level:
+    com.example.webhook: DEBUG
+    org.testcontainers: DEBUG
+    com.github.dockerjava: DEBUG

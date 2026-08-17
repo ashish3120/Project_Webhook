@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: webhook_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-webhookdb}
+      POSTGRES_USER: ${POSTGRES_USER:-webhook}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-webhooksecret}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-webhook} -d ${POSTGRES_DB:-webhookdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - webhook_net
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webhook_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-webhookdb}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-webhook}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-webhooksecret}
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      WEBHOOK_WORKER_LEASE_DURATION_SECONDS: ${WEBHOOK_WORKER_LEASE_DURATION_SECONDS:-60}
+      WEBHOOK_WORKER_BATCH_SIZE: ${WEBHOOK_WORKER_BATCH_SIZE:-10}
+      WEBHOOK_WORKER_POLL_INTERVAL_MS: ${WEBHOOK_WORKER_POLL_INTERVAL_MS:-5000}
+      WEBHOOK_RETRY_MAX_ATTEMPTS: ${WEBHOOK_RETRY_MAX_ATTEMPTS:-8}
+      WEBHOOK_RETRY_BASE_DELAY_MS: ${WEBHOOK_RETRY_BASE_DELAY_MS:-5000}
+      WEBHOOK_RETRY_MAX_DELAY_MS: ${WEBHOOK_RETRY_MAX_DELAY_MS:-3600000}
+      WEBHOOK_CLIENT_CONNECT_TIMEOUT_MS: ${WEBHOOK_CLIENT_CONNECT_TIMEOUT_MS:-5000}
+      WEBHOOK_CLIENT_READ_TIMEOUT_MS: ${WEBHOOK_CLIENT_READ_TIMEOUT_MS:-10000}
+      WEBHOOK_ALLOW_INTERNAL_ENDPOINTS: ${WEBHOOK_ALLOW_INTERNAL_ENDPOINTS:-false}
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    networks:
+      - webhook_net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  webhook_net:
+    driver: bridge
