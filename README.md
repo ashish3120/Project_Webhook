@@ -16,6 +16,29 @@ It guarantees **at-least-once delivery**, enforces strict **tenant isolation**, 
 
 ## 🏗️ 1. High-Level Architecture Overview
 
+The system is designed with a **Two-Transaction Pattern** ensuring absolute reliability by decoupling fast event ingestion from slower, asynchronous webhook delivery.
+
+```mermaid
+graph TD
+    Client[Event Producer] -->|1. POST /events| API[REST Controllers]
+    API -->|2. Validate & Store| DB[(PostgreSQL)]
+    DB -.->|3. Return| API
+    API -.->|4. 202 Accepted| Client
+    
+    subgraph Asynchronous Delivery Pool
+        Worker[Delivery Worker] -->|5. FOR UPDATE SKIP LOCKED| DB
+        Worker -->|6. HTTP POST| Webhook[Client Webhook URL]
+        Webhook -.->|7. Return 200 OK| Worker
+        Worker -->|8. Record Result| DB
+    end
+    
+    style Client fill:#2496ED,stroke:#fff,stroke-width:2px,color:#fff
+    style API fill:#6DB33F,stroke:#fff,stroke-width:2px,color:#fff
+    style DB fill:#336791,stroke:#fff,stroke-width:2px,color:#fff
+    style Webhook fill:#f39c12,stroke:#fff,stroke-width:2px,color:#fff
+    style Worker fill:#8e44ad,stroke:#fff,stroke-width:2px,color:#fff
+```
+
 ### Tech Stack
 *   **Language**: Java 21
 *   **Framework**: Spring Boot 4.1.0
